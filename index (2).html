@@ -233,6 +233,22 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:32
 .respond-cta{background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:20px;text-align:center;margin-top:12px}
 .respond-cta h3{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:6px}
 .respond-cta p{font-size:.8rem;color:var(--muted);margin-bottom:14px}
+
+/* COLLECTION PUBLIQUE */
+.pub-coll-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-top:20px}
+.pub-coll-card{background:var(--white);border:1.5px solid var(--border);border-radius:16px;padding:12px;transition:all .2s;cursor:pointer}
+.pub-coll-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(0,0,0,.1);border-color:rgba(255,107,0,.25)}
+.pub-coll-card img{width:100%;aspect-ratio:3/4;object-fit:contain;border-radius:10px;background:var(--bg)}
+.pub-coll-card .pc-name{font-size:.75rem;font-weight:700;margin-top:8px}
+.pub-coll-card .pc-user{font-size:.65rem;color:var(--muted);margin-top:2px}
+.pub-coll-card .pc-cond{font-size:.62rem;color:var(--orange);margin-top:2px;font-weight:600}
+.pub-coll-card .pc-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.pc-tag{padding:2px 6px;border-radius:100px;font-size:.58rem;font-weight:600}
+.pc-tag-lang{background:rgba(10,132,255,.1);color:#0060cc}
+.pc-tag-grade{background:rgba(123,47,255,.1);color:#5a18cc}
+.contact-overlay{position:absolute;inset:0;background:rgba(255,107,0,.92);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;color:#fff;font-size:.8rem;font-weight:600;gap:8px}
+.pub-coll-card:hover .contact-overlay{opacity:1}
+.pub-coll-card{position:relative;overflow:hidden}
 </style>
 </head>
 <body>
@@ -245,6 +261,7 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:32
     <a href="#catalogue">Catalogue</a>
     <a href="#how">Comment ça marche</a>
     <a href="#live">Live</a>
+    <a href="#disponibles">Cartes dispo</a>
   </div>
   <div class="nav-right" id="navRight">
     <button class="btn btn-ol" onclick="openM('login')">Connexion</button>
@@ -457,6 +474,42 @@ footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:32
       <div class="livebadge"><div class="ldot"></div>Live</div>
     </div>
     <div class="dlist" id="dlist"><div class="dem-empty">Chargement des demandes...</div></div>
+  </div>
+</div>
+
+<!-- CARTES DISPO A L'ECHANGE -->
+<div class="sec" style="padding-top:0" id="disponibles">
+  <div class="slbl">Disponibles maintenant</div>
+  <h2 class="stitle">Cartes proposées à l'échange</h2>
+  <p class="ssub">Ces fans ont des cartes à échanger. Clique pour les contacter.</p>
+
+  <!-- FILTRES -->
+  <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
+    <input class="si" id="coll-search" placeholder="🔍 Chercher une carte..." style="max-width:260px" oninput="filterPublicColl()">
+    <select class="ss" id="coll-lang" onchange="filterPublicColl()">
+      <option value="">Toutes les langues</option>
+      <option value="Français">🇫🇷 Français</option>
+      <option value="Anglais">🇬🇧 Anglais</option>
+      <option value="Japonais">🇯🇵 Japonais</option>
+      <option value="Coréen">🇰🇷 Coréen</option>
+    </select>
+    <select class="ss" id="coll-cond" onchange="filterPublicColl()">
+      <option value="">Tous les états</option>
+      <option value="Mint (M)">Mint</option>
+      <option value="Near Mint (NM)">Near Mint</option>
+      <option value="Excellent (EX)">Excellent</option>
+      <option value="Good (GD)">Good</option>
+      <option value="Light Played (LP)">Light Played</option>
+      <option value="Played (PL)">Played</option>
+    </select>
+  </div>
+
+  <div class="pub-coll-grid" id="pubCollGrid">
+    <div class="ldr" style="grid-column:1/-1"><div class="spin"></div>Chargement...</div>
+  </div>
+
+  <div id="pubCollMore" style="display:none;text-align:center;margin-top:20px">
+    <button class="btn btn-ol" onclick="loadMoreColl()">Voir plus de cartes</button>
   </div>
 </div>
 
@@ -1036,16 +1089,28 @@ async function loadCards(page=1) {
   }
 }
 
+// Store card data globally to avoid inline quote issues
+const cardDataMap = {};
+
 function renderGrid(cards) {
+  cards.forEach(c => {
+    cardDataMap[c.id] = {id: c.id, name: c.name, img: c.images?.small || ''};
+  });
   document.getElementById('grid').innerHTML = cards.map(c => {
     const img = c.images?.small || '';
-    return `<div class="ci${sel.has(c.id)?' sel':''}" onclick="toggleSel('${c.id}','${c.name.replace(/'/g,"\\'")}','${img}',this)">
-      ${img?`<img src="${img}" alt="${c.name}" loading="lazy">` : '<div style="aspect-ratio:3/4;background:var(--bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem">🃏</div>'}
+    return `<div class="ci${sel.has(c.id)?' sel':''}" data-cid="${c.id}" onclick="toggleSelById('${c.id}',this)">
+      ${img ? `<img src="${img}" alt="${c.name.replace(/"/g,'&quot;')}" loading="lazy">` : '<div style="aspect-ratio:3/4;background:var(--bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:2rem">🃏</div>'}
       <div class="cn">${c.name}</div>
       <div class="cs">${c.set?.name||''}</div>
       <div class="cr">${rarityIcon(c.rarity||'')}</div>
     </div>`;
   }).join('');
+}
+
+function toggleSelById(id, el) {
+  const card = cardDataMap[id];
+  if (!card) return;
+  toggleSel(id, card.name, card.img, el);
 }
 
 function rarityIcon(r) {
@@ -1113,11 +1178,114 @@ function timeAgo(ts) {
   return Math.floor(diff/86400) + 'j';
 }
 
+
+// ============ COLLECTION PUBLIQUE ============
+let allPublicColl = [];
+let collPage = 0;
+const COLL_PER_PAGE = 16;
+
+async function loadPublicCollection() {
+  const {data} = await sb.from('collection')
+    .select('*, profiles(username, avatar_color)')
+    .eq('available', true)
+    .order('created_at', {ascending: false})
+    .limit(100);
+  
+  allPublicColl = data || [];
+  collPage = 0;
+  filterPublicColl();
+}
+
+function filterPublicColl() {
+  const search = document.getElementById('coll-search')?.value.toLowerCase() || '';
+  const lang = document.getElementById('coll-lang')?.value || '';
+  const cond = document.getElementById('coll-cond')?.value || '';
+
+  let filtered = allPublicColl.filter(c => {
+    const nameMatch = !search || c.name.toLowerCase().includes(search);
+    const langMatch = !lang || c.lang === lang;
+    const condMatch = !cond || c.condition === cond;
+    return nameMatch && langMatch && condMatch;
+  });
+
+  renderPublicColl(filtered.slice(0, COLL_PER_PAGE));
+  document.getElementById('pubCollMore').style.display = filtered.length > COLL_PER_PAGE ? 'block' : 'none';
+}
+
+function renderPublicColl(items) {
+  const grid = document.getElementById('pubCollGrid');
+  if (!items.length) {
+    grid.innerHTML = '<div class="ldr" style="grid-column:1/-1">Aucune carte disponible pour le moment 🎴</div>';
+    return;
+  }
+  grid.innerHTML = items.map(c => {
+    const uname = c.profiles?.username || 'Anonyme';
+    const color = c.profiles?.avatar_color || '#FF6B00';
+    const initials = uname.slice(0,2).toUpperCase();
+    const isOwn = currentUser && c.user_id === currentUser.id;
+    return `
+    <div class="pub-coll-card" onclick="${isOwn ? '' : `contactCollOwner('${c.user_id}','${uname}','${c.name}')`}">
+      ${c.img_url
+        ? `<img src="${c.img_url}" alt="${c.name}" loading="lazy">`
+        : `<div style="aspect-ratio:3/4;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:2.5rem">🃏</div>`}
+      <div class="pc-name">${c.name}</div>
+      ${c.number ? `<div style="font-size:.6rem;color:var(--muted)">#${c.number}</div>` : ''}
+      <div style="display:flex;align-items:center;gap:6px;margin-top:5px">
+        <div style="width:20px;height:20px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
+        <div class="pc-user">${isOwn ? 'Ma carte' : uname}</div>
+      </div>
+      <div class="pc-cond">${c.condition || ''}</div>
+      <div class="pc-tags">
+        ${c.lang ? `<span class="pc-tag pc-tag-lang">${c.lang}</span>` : ''}
+        ${c.graded && c.graded !== 'Non gradee' ? `<span class="pc-tag pc-tag-grade">${c.graded}${c.grade_score?' '+c.grade_score:''}</span>` : ''}
+      </div>
+      ${!isOwn ? `<div class="contact-overlay"><span style="font-size:1.5rem">💬</span>Contacter ${uname}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function loadMoreColl() {
+  collPage++;
+  const search = document.getElementById('coll-search')?.value.toLowerCase() || '';
+  const lang = document.getElementById('coll-lang')?.value || '';
+  const cond = document.getElementById('coll-cond')?.value || '';
+  let filtered = allPublicColl.filter(c => {
+    return (!search || c.name.toLowerCase().includes(search)) &&
+           (!lang || c.lang === lang) &&
+           (!cond || c.condition === cond);
+  });
+  const start = 0;
+  const end = (collPage + 1) * COLL_PER_PAGE;
+  renderPublicColl(filtered.slice(start, end));
+  if (end >= filtered.length) document.getElementById('pubCollMore').style.display = 'none';
+}
+
+async function contactCollOwner(userId, username, cardName) {
+  if (!currentUser) {
+    openM('respond_signup', userId, username);
+    toast('Crée un compte pour contacter ' + username);
+    return;
+  }
+  // Crée un match direct via la collection
+  const {data: match, error} = await sb.from('matches')
+    .insert({demand_id: null, responder_id: currentUser.id, collection_owner_id: userId})
+    .select().single();
+  
+  toast('💬 Ouverture du chat avec ' + username + ' pour ' + cardName);
+}
+
+// Subscribe realtime pour la collection publique
+sb.channel('collection_live')
+  .on('postgres_changes', {event: '*', schema: 'public', table: 'collection'}, () => {
+    loadPublicCollection();
+  }).subscribe();
+
 // ============ INIT ============
 loadSets();
 loadCards();
 loadDemands();
 subscribeDemands();
+loadPublicCollection();
 
 // ============ TABS ============
 function switchTab(tab) {

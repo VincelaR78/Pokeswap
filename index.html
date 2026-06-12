@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PokéChange — La récré des cartes</title>
+<meta name="description" content="Echange tes cartes Pokemon avec d'autres fans en France. Plateforme de troc peer-to-peer, gratuite et securisee.">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#FFFBF5;--white:#fff;--black:#111;--muted:#999;
+  --border:rgba(0,0,0,0.07);--orange:#FF6B00;--ol:rgba(255,107,0,0.1);
+  --yellow:#FFD60A;--blue:#0A84FF;--red:#FF3B30;--green:#28CD41;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--black);font-family:'DM Sans',sans-serif;overflow-x:hidden}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 40px;background:rgba(255,251,245,0.95);backdrop-filter:blur(18px);border-bottom:1px solid var(--border)}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;letter-spacing:-1px;text-decoration:none;color:var(--black)}
+.logo em{color:var(--orange);font-style:normal}
+.nav-links{display:flex;gap:24px;align-items:center}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:.875rem;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:var(--black)}
+.hamburger{display:none;background:none;border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:1.1rem;cursor:pointer}
+.mobile-menu{display:none;position:fixed;top:65px;left:0;right:0;background:var(--white);border-bottom:1.5px solid var(--border);z-index:99;padding:16px 20px;flex-direction:column;gap:4px;box-shadow:0 8px 24px rgba(0,0,0,.1)}
+.mobile-menu.open{display:flex}
+.mobile-menu a{padding:12px 16px;border-radius:10px;text-decoration:none;color:var(--black);font-weight:500;font-size:.9rem}
+
+/* BTN */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:100px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.875rem;cursor:pointer;border:none;transition:all .2s;text-decoration:none}
+.btn-or{background:var(--orange);color:#fff}.btn-or:hover{background:#e05800;transform:translateY(-1px)}
+.btn-ol{background:transparent;color:var(--black);border:1.5px solid var(--border)}.btn-ol:hover{background:var(--white)}
+.btn-sm{padding:7px 14px;font-size:.78rem}
+
+/* HERO */
+.hero{padding:140px 40px 80px;text-align:center;max-width:780px;margin:0 auto}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--ol);border:1px solid rgba(255,107,0,.15);border-radius:100px;padding:6px 14px;font-size:.75rem;font-weight:700;color:var(--orange);margin-bottom:24px}
+.hero h1{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(2.2rem,6vw,3.8rem);letter-spacing:-2px;line-height:1.08;margin-bottom:20px}
+.hero h1 em{color:var(--orange);font-style:normal}
+.hero p{font-size:1.1rem;color:var(--muted);line-height:1.7;max-width:540px;margin:0 auto 36px}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+/* STATS BAR */
+.stats-bar{background:var(--white);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:20px 40px;display:flex;justify-content:center;gap:60px;flex-wrap:wrap}
+.stat-item{text-align:center}
+.stat-val{font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;color:var(--orange)}
+.stat-lbl{font-size:.72rem;color:var(--muted);margin-top:2px}
+
+/* HOW IT WORKS */
+.section{padding:80px 40px;max-width:1100px;margin:0 auto}
+.section-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--orange);margin-bottom:12px}
+.section-title{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(1.6rem,3vw,2.2rem);letter-spacing:-1px;margin-bottom:48px}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px}
+.step{background:var(--white);border:1.5px solid var(--border);border-radius:20px;padding:28px;position:relative}
+.step-num{font-family:'Syne',sans-serif;font-weight:800;font-size:2.5rem;color:var(--ol);position:absolute;top:16px;right:20px}
+.step-icon{font-size:2rem;margin-bottom:14px}
+.step h3{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;margin-bottom:8px}
+.step p{font-size:.83rem;color:var(--muted);line-height:1.6}
+
+/* CATALOGUE */
+.catalogue-wrap{background:var(--white);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 40px}
+.catalogue-inner{max-width:1100px;margin:0 auto}
+.cat-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
+.cat-chip{background:var(--bg);border:1.5px solid var(--border);border-radius:100px;padding:6px 14px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--muted);transition:all .2s}
+.cat-chip:hover,.cat-chip.active{background:var(--orange);color:#fff;border-color:var(--orange)}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+.pcard{background:var(--bg);border:1.5px solid var(--border);border-radius:16px;padding:12px;cursor:pointer;transition:all .2s;position:relative}
+.pcard:hover{border-color:rgba(255,107,0,.3);box-shadow:0 6px 20px rgba(0,0,0,.08);transform:translateY(-2px)}
+.pcard img{width:100%;aspect-ratio:3/4;object-fit:contain;border-radius:10px;background:var(--white)}
+.pcard-name{font-size:.72rem;font-weight:700;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pcard-sub{font-size:.62rem;color:var(--muted);margin-top:2px}
+.pcard-cond{font-size:.62rem;color:var(--orange);font-weight:700;margin-top:2px}
+.pcard-owner{font-size:.6rem;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:4px}
+.pcard-avatar{width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.45rem;font-weight:700;color:#fff}
+.pcard-badge{position:absolute;top:8px;right:8px;background:var(--green);color:#fff;font-size:.55rem;font-weight:700;padding:2px 5px;border-radius:4px}
+
+/* DEMAND FORM */
+.demand-section{padding:80px 40px;max-width:680px;margin:0 auto}
+.demand-card{background:var(--white);border:1.5px solid var(--border);border-radius:22px;padding:36px;box-shadow:0 4px 24px rgba(0,0,0,.06)}
+.fg{margin-bottom:14px}
+.fl{display:block;font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+.fi{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:11px;padding:11px 13px;color:var(--black);font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;transition:border-color .2s}
+.fi:focus{border-color:var(--orange)}
+.fi::placeholder{color:var(--muted)}
+
+/* WHY */
+.why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px}
+.why-item{padding:24px;background:var(--white);border:1.5px solid var(--border);border-radius:18px;text-align:center}
+.why-icon{font-size:2rem;margin-bottom:12px}
+.why-item h4{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;margin-bottom:6px}
+.why-item p{font-size:.78rem;color:var(--muted);line-height:1.5}
+
+/* FOOTER */
+footer{background:var(--black);color:rgba(255,255,255,.5);padding:40px;text-align:center;font-size:.78rem}
+footer a{color:rgba(255,255,255,.5);text-decoration:none;margin:0 10px}
+footer a:hover{color:#fff}
+.footer-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;color:#fff;margin-bottom:16px;display:block}
+.footer-logo em{color:var(--orange);font-style:normal}
+
+/* MODAL */
+.ov{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.4);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px}
+.ov.on{display:flex}
+.modal{background:var(--white);border:1.5px solid var(--border);border-radius:24px;padding:36px;width:100%;max-width:420px;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.15);max-height:90vh;overflow-y:auto}
+.modal h2{font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;margin-bottom:6px;letter-spacing:-0.5px}
+.modal-sub{color:var(--muted);font-size:.83rem;margin-bottom:24px}
+.mcl{position:absolute;top:14px;right:14px;background:var(--bg);border:none;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:.9rem;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.tab-row{display:flex;gap:0;margin-bottom:24px;background:var(--bg);border-radius:12px;padding:4px}
+.tab{flex:1;padding:8px;text-align:center;border-radius:9px;cursor:pointer;font-size:.83rem;font-weight:600;color:var(--muted);border:none;background:none;transition:all .2s}
+.tab.active{background:var(--white);color:var(--black);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.auth-err{background:rgba(255,59,48,.08);border:1px solid rgba(255,59,48,.2);border-radius:10px;padding:10px 12px;font-size:.78rem;color:var(--red);margin-bottom:14px;display:none}
+.auth-err.on{display:block}
+
+/* LIGHTBOX */
+#cardLightbox{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:20px;cursor:zoom-out}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;z-index:300;background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:12px 18px;font-size:.83rem;font-weight:500;display:flex;align-items:center;gap:8px;transform:translateY(80px);opacity:0;transition:all .3s ease;box-shadow:0 8px 24px rgba(0,0,0,.1)}
+.toast.on{transform:translateY(0);opacity:1}
+
+/* SPINNER */
+.spin{width:18px;height:18px;border:2px solid rgba(0,0,0,.08);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* LEGAL MODALS */
+.legal-modal{max-width:600px;font-size:.83rem;line-height:1.7;color:#444}
+.legal-modal h3{font-family:'Syne',sans-serif;font-weight:700;margin:18px 0 6px;color:var(--black)}
+
+@media(max-width:768px){
+  nav{padding:12px 16px}
+  .hamburger{display:block}
+  .nav-links{display:none}
+  .hero{padding:100px 20px 60px}
+  .stats-bar{gap:32px;padding:20px}
+  .section{padding:60px 20px}
+  .catalogue-wrap{padding:60px 20px}
+  .demand-section{padding:60px 20px}
+  .cards-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="logo" href="index.html">Poké<em>Change</em></a>
+  <div class="nav-links">
+    <a href="index.html">🏠 Accueil</a>
+    <a href="#catalogue">🃏 Catalogue</a>
+    <a href="about.html">Qui sommes-nous</a>
+    <a href="contact.html">Contact</a>
+    <span id="navUserArea">
+      <button class="btn btn-ol btn-sm" onclick="openAuth('login')">Connexion</button>
+      <button class="btn btn-or btn-sm" onclick="openAuth('signup')" style="margin-left:6px">Inscription</button>
+    </span>
+  </div>
+  <button class="hamburger" onclick="document.getElementById('mobileMenu').classList.toggle('open')">☰</button>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="index.html" onclick="closeMobile()">🏠 Accueil</a>
+  <a href="#catalogue" onclick="closeMobile()">🃏 Catalogue</a>
+  <a href="about.html">Qui sommes-nous</a>
+  <a href="contact.html">Contact</a>
+  <div id="mobileUserArea" style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+    <button class="btn btn-ol" onclick="openAuth('login');closeMobile()">Connexion</button>
+    <button class="btn btn-or" onclick="openAuth('signup');closeMobile()">Inscription</button>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">🃏 Plateforme de troc Pokemon en France</div>
+  <h1>Comme si la cour de <em>récré</em> ne nous avait jamais quittés.</h1>
+  <p>Echange tes cartes Pokemon en double avec d'autres fans. Gratuit, simple, sans intermédiaire.</p>
+  <div class="hero-cta">
+    <button class="btn btn-or" onclick="document.getElementById('catalogue').scrollIntoView({behavior:'smooth'})">🃏 Voir les cartes dispo</button>
+    <button class="btn btn-ol" onclick="openAuth('signup')">Rejoindre la communauté</button>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-val" id="statTotal">—</div><div class="stat-lbl">Cartes disponibles</div></div>
+  <div class="stat-item"><div class="stat-val" id="statUsers">—</div><div class="stat-lbl">Membres actifs</div></div>
+  <div class="stat-item"><div class="stat-val" id="statEchanges">—</div><div class="stat-lbl">Echanges realisés</div></div>
+  <div class="stat-item"><div class="stat-val">🇫🇷</div><div class="stat-lbl">100% France</div></div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="section">
+  <div class="section-label">Comment ca marche</div>
+  <div class="section-title">3 étapes, 0 euro</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-icon">📸</div>
+      <h3>Ajoute tes cartes</h3>
+      <p>Photo recto + verso obligatoire. Transparence totale sur l'état de la carte.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-icon">🔍</div>
+      <h3>Cherche ce qu'il te faut</h3>
+      <p>Parcours le catalogue, filtre par état, série ou langue. Postez une demande si tu ne trouves pas.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-icon">🤝</div>
+      <h3>Echange directement</h3>
+      <p>Chat privé avec le vendeur, accord sur les conditions, envoi ou rencontre. Simple.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-icon">⭐</div>
+      <h3>Laisse un avis</h3>
+      <p>Construis ta réputation. Les meilleurs échangeurs sont mis en avant sur la plateforme.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CATALOGUE -->
+<div class="catalogue-wrap" id="catalogue">
+  <div class="catalogue-inner">
+    <div class="section-label">Catalogue</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+      <div class="section-title" style="margin-bottom:0">Cartes disponibles</div>
+      <input class="fi" id="searchInput" placeholder="🔍 Rechercher une carte..." style="width:220px" oninput="filterCards()">
+    </div>
+    <div class="cat-filters" id="catFilters">
+      <span class="cat-chip active" onclick="setFilter('',this)">Toutes</span>
+      <span class="cat-chip" onclick="setFilter('Mint (M)',this)">Mint</span>
+      <span class="cat-chip" onclick="setFilter('Near Mint (NM)',this)">Near Mint</span>
+      <span class="cat-chip" onclick="setFilter('Excellent (EX)',this)">Excellent</span>
+      <span class="cat-chip" onclick="setFilter('Français',this)">🇫🇷 FR</span>
+      <span class="cat-chip" onclick="setFilter('Anglais',this)">🇬🇧 EN</span>
+      <span class="cat-chip" onclick="setFilter('Japonais',this)">🇯🇵 JP</span>
+    </div>
+    <div class="cards-grid" id="cardsGrid">
+      <div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:10px">
+        <div class="spin"></div> Chargement des cartes...
+      </div>
+    </div>
+    <div id="loadMoreWrap" style="text-align:center;margin-top:24px;display:none">
+      <button class="btn btn-ol" onclick="loadMoreCards()">Voir plus de cartes</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEMAND FORM -->
+<div class="demand-section" id="demander">
+  <div class="section-label">Tu ne trouves pas ?</div>
+  <div class="section-title" style="margin-bottom:24px">Poste une demande</div>
+  <div class="demand-card">
+    <div class="fg"><label class="fl">Carte recherchée *</label><input class="fi" id="dCard" placeholder="Ex: Pikachu VMAX, Charizard ex..."></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="fg"><label class="fl">Serie</label><input class="fi" id="dSet" placeholder="Ex: Ecarlate et Violet"></div>
+      <div class="fg"><label class="fl">Etat minimum</label>
+        <select class="fi" id="dCond">
+          <option value="">Peu importe</option>
+          <option value="Mint (M)">Mint</option>
+          <option value="Near Mint (NM)">Near Mint</option>
+          <option value="Excellent (EX)">Excellent</option>
+          <option value="Good (GD)">Good</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Ce que tu proposes en echange *</label><input class="fi" id="dOffer" placeholder="Ex: Mewtwo ex NM, Dracaufeu EX..."></div>
+    <div class="fg"><label class="fl">Remarques</label><textarea class="fi" id="dNote" rows="2" placeholder="Langue souhaitee, gradee..."></textarea></div>
+    <button class="btn btn-or" style="width:100%;justify-content:center;margin-top:4px" onclick="submitDemand()">📢 Poster ma demande</button>
+  </div>
+</div>
+
+<!-- WHY -->
+<section class="section">
+  <div class="section-label">Pourquoi PokéChange</div>
+  <div class="section-title">La plateforme que les fans attendaient</div>
+  <div class="why-grid">
+    <div class="why-item"><div class="why-icon">🆓</div><h4>Totalement gratuit</h4><p>Pas de commission, pas d'abonnement. Le troc comme a l'ecole.</p></div>
+    <div class="why-item"><div class="why-icon">📸</div><h4>Photos recto/verso</h4><p>Chaque carte doit avoir ses deux faces. Zero surprise a la reception.</p></div>
+    <div class="why-item"><div class="why-icon">⭐</div><h4>Systeme de reputation</h4><p>Avis verifies apres chaque echange. Les escrocs sont signales.</p></div>
+    <div class="why-item"><div class="why-icon">🇫🇷</div><h4>Communaute francaise</h4><p>Echanges en France uniquement. Frais de port maitrisés, livraison rapide.</p></div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span class="footer-logo">Poké<em>Change</em></span>
+  <div style="margin-bottom:14px">
+    <a href="#" onclick="openLegal('mentions')">Mentions légales</a>
+    <a href="#" onclick="openLegal('cgu')">CGU</a>
+    <a href="#" onclick="openLegal('confidentialite')">Confidentialité</a>
+    <a href="contact.html">Contact</a>
+    <a href="about.html">A propos</a>
+  </div>
+  <div>© 2025 PokéChange — Tous droits réservés. Propriété de M. Potrisa Vincent.</div>
+</footer>
+
+<!-- AUTH MODAL -->
+<div class="ov" id="authOv" onclick="if(event.target.id==='authOv')closeAuth()">
+  <div class="modal">
+    <button class="mcl" onclick="closeAuth()">✕</button>
+    <div class="tab-row">
+      <button class="tab active" id="tabLogin" onclick="switchTab('login')">Connexion</button>
+      <button class="tab" id="tabSignup" onclick="switchTab('signup')">Inscription</button>
+    </div>
+    <div id="authBody"></div>
+  </div>
+</div>
+
+<!-- LEGAL MODAL -->
+<div class="ov" id="legalOv" onclick="if(event.target.id==='legalOv')closeLegal()">
+  <div class="modal" style="max-width:600px">
+    <button class="mcl" onclick="closeLegal()">✕</button>
+    <div id="legalBody"></div>
+  </div>
+</div>
+
+<!-- CARD LIGHTBOX -->
+<div id="cardLightbox" style="display:none" onclick="this.style.display='none'">
+  <div style="max-width:340px;width:100%;text-align:center" onclick="event.stopPropagation()">
+    <button onclick="document.getElementById('cardLightbox').style.display='none'" style="position:absolute;top:20px;right:20px;background:white;border:none;border-radius:50%;width:36px;height:36px;font-size:1.1rem;cursor:pointer">✕</button>
+    <img id="lbImg" style="width:100%;border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.8)">
+    <div id="lbName" style="color:white;font-weight:700;margin-top:12px;font-size:1rem"></div>
+    <div id="lbBtns" style="display:flex;gap:10px;justify-content:center;margin-top:14px"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="tmsg"></span></div>
+
+<script>
+const SUPABASE_URL = 'https://bftqdmpksokudeswkkry.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmdHFkbXBrc29rdWRlc3dra3J5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3MTUzMTcsImV4cCI6MjA5NjI5MTMxN30.wWWXC0gG-T-1GqFI2RG5W-mg4_Gsq6Yh5oWgyHvms9A';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let allCards = [];
+let activeFilter = '';
+let displayedCount = 0;
+const PAGE_SIZE = 24;
+
+// ============ AUTH STATE — FIXED ============
+// On index.html: only redirect to dashboard AFTER explicit login,
+// never automatically. We just update the nav to show the user is logged in.
+async function initAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) updateNavForUser(session.user);
+
+  // Listen only for SIGNED_IN (after explicit login/signup) and SIGNED_OUT
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session?.user) {
+      updateNavForUser(session.user);
+    } else if (event === 'SIGNED_OUT') {
+      updateNavForGuest();
+    }
+    // INITIAL_SESSION and TOKEN_REFRESHED: do nothing, no redirect
+  });
+}
+
+function updateNavForUser(user) {
+  const username = user.user_metadata?.username || user.email?.split('@')[0] || 'Moi';
+  document.getElementById('navUserArea').innerHTML = `
+    <a href="dashboard.html" class="btn btn-or btn-sm">👤 ${username}</a>
+    <button class="btn btn-ol btn-sm" onclick="doLogout()" style="margin-left:6px">Deconnexion</button>`;
+  document.getElementById('mobileUserArea').innerHTML = `
+    <a href="dashboard.html" class="btn btn-or">👤 Mon espace</a>
+    <button class="btn btn-ol" onclick="doLogout()">Deconnexion</button>`;
+}
+
+function updateNavForGuest() {
+  document.getElementById('navUserArea').innerHTML = `
+    <button class="btn btn-ol btn-sm" onclick="openAuth('login')">Connexion</button>
+    <button class="btn btn-or btn-sm" onclick="openAuth('signup')" style="margin-left:6px">Inscription</button>`;
+  document.getElementById('mobileUserArea').innerHTML = `
+    <button class="btn btn-ol" onclick="openAuth('login');closeMobile()">Connexion</button>
+    <button class="btn btn-or" onclick="openAuth('signup');closeMobile()">Inscription</button>`;
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  updateNavForGuest();
+  toast('A bientot !');
+}
+
+// ============ AUTH MODAL ============
+let currentTab = 'login';
+
+function openAuth(tab) {
+  currentTab = tab || 'login';
+  document.getElementById('authOv').classList.add('on');
+  renderAuthBody();
+  switchTab(currentTab);
+}
+function closeAuth() { document.getElementById('authOv').classList.remove('on'); }
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+  document.getElementById('tabSignup').classList.toggle('active', tab === 'signup');
+  renderAuthBody();
+}
+
+function renderAuthBody() {
+  if (currentTab === 'login') {
+    document.getElementById('authBody').innerHTML = `
+      <div class="auth-err" id="authErr"></div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="aEmail" type="email" placeholder="ton@email.com" autocomplete="email"></div>
+      <div class="fg"><label class="fl">Mot de passe</label><input class="fi" id="aPass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn btn-or" style="width:100%;justify-content:center" onclick="doLogin()" id="authBtn">Se connecter</button>
+      <div style="text-align:center;margin-top:14px">
+        <span style="font-size:.78rem;color:var(--muted);cursor:pointer" onclick="showForgot()">Mot de passe oublié ?</span>
+      </div>`;
+  } else {
+    document.getElementById('authBody').innerHTML = `
+      <div class="auth-err" id="authErr"></div>
+      <div class="fg"><label class="fl">Pseudo</label><input class="fi" id="aUser" placeholder="DresseurAsh" autocomplete="username"></div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="aEmail" type="email" placeholder="ton@email.com" autocomplete="email"></div>
+      <div class="fg"><label class="fl">Mot de passe</label><input class="fi" id="aPass" type="password" placeholder="8 caracteres minimum" autocomplete="new-password" onkeydown="if(event.key==='Enter')doSignup()"></div>
+      <button class="btn btn-or" style="width:100%;justify-content:center" onclick="doSignup()" id="authBtn">Creer mon compte</button>
+      <div style="font-size:.7rem;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5">
+        En vous inscrivant, vous acceptez nos <span style="cursor:pointer;text-decoration:underline" onclick="openLegal('cgu')">CGU</span> et notre <span style="cursor:pointer;text-decoration:underline" onclick="openLegal('confidentialite')">politique de confidentialite</span>.
+      </div>`;
+  }
+}
+
+function showAuthErr(msg) {
+  const el = document.getElementById('authErr');
+  if (el) { el.textContent = msg; el.classList.add('on'); }
+}
+
+async function doLogin() {
+  const email = document.getElementById('aEmail')?.value.trim();
+  const pass = document.getElementById('aPass')?.value;
+  if (!email || !pass) { showAuthErr('Remplis tous les champs'); return; }
+  const btn = document.getElementById('authBtn');
+  if (btn) { btn.textContent = 'Connexion...'; btn.disabled = true; }
+
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    showAuthErr(error.message.includes('Invalid') ? 'Email ou mot de passe incorrect' : error.message);
+    if (btn) { btn.textContent = 'Se connecter'; btn.disabled = false; }
+    return;
+  }
+  closeAuth();
+  toast('Bienvenue !');
+  // Redirect to dashboard after successful login
+  setTimeout(() => { window.location.href = 'dashboard.html'; }, 600);
+}
+
+async function doSignup() {
+  const username = document.getElementById('aUser')?.value.trim();
+  const email = document.getElementById('aEmail')?.value.trim();
+  const pass = document.getElementById('aPass')?.value;
+  if (!username || !email || !pass) { showAuthErr('Remplis tous les champs'); return; }
+  if (pass.length < 8) { showAuthErr('Mot de passe trop court (8 min)'); return; }
+  const btn = document.getElementById('authBtn');
+  if (btn) { btn.textContent = 'Creation...'; btn.disabled = true; }
+
+  const { data, error } = await sb.auth.signUp({
+    email, password: pass,
+    options: { data: { username } }
+  });
+  if (error) {
+    showAuthErr(error.message.includes('already') ? 'Cet email est deja utilise' : error.message);
+    if (btn) { btn.textContent = 'Creer mon compte'; btn.disabled = false; }
+    return;
+  }
+  // Auto-create profile
+  if (data.user) {
+    await sb.from('profiles').upsert({ id: data.user.id, username, avatar_color: '#FF6B00' });
+  }
+  closeAuth();
+  toast('Compte cree ! Bienvenue sur PokeChange');
+  setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+}
+
+async function showForgot() {
+  document.getElementById('authBody').innerHTML = `
+    <div class="auth-err" id="authErr"></div>
+    <p style="font-size:.83rem;color:var(--muted);margin-bottom:16px">Entre ton email pour recevoir un lien de reinitialisation.</p>
+    <div class="fg"><label class="fl">Email</label><input class="fi" id="aEmail" type="email" placeholder="ton@email.com"></div>
+    <button class="btn btn-or" style="width:100%;justify-content:center" onclick="sendReset()" id="authBtn">Envoyer le lien</button>
+    <div style="text-align:center;margin-top:14px"><span style="font-size:.78rem;color:var(--muted);cursor:pointer" onclick="switchTab('login')">← Retour a la connexion</span></div>`;
+}
+
+async function sendReset() {
+  const email = document.getElementById('aEmail')?.value.trim();
+  if (!email) { showAuthErr('Entre ton email'); return; }
+  const btn = document.getElementById('authBtn');
+  if (btn) { btn.textContent = 'Envoi...'; btn.disabled = true; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://pokechange.netlify.app/' });
+  if (error) { showAuthErr(error.message); if (btn) { btn.textContent = 'Envoyer'; btn.disabled = false; } return; }
+  document.getElementById('authBody').innerHTML = `<div style="text-align:center;padding:20px"><div style="font-size:2rem">📧</div><div style="font-weight:700;margin-top:12px">Email envoyé !</div><div style="color:var(--muted);font-size:.83rem;margin-top:6px">Verifie ta boite mail et suis le lien.</div></div>`;
+}
+
+// ============ CATALOGUE ============
+async function loadCatalogue() {
+  const { data, error } = await sb.from('collection')
+    .select('*, profiles(username, avatar_color)')
+    .eq('available', true)
+    .order('created_at', { ascending: false })
+    .limit(200);
+
+  if (error) { console.error('catalogue error:', error); return; }
+  allCards = data || [];
+  renderCards();
+  loadStats();
+}
+
+function setFilter(val, el) {
+  activeFilter = val;
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  displayedCount = 0;
+  renderCards();
+}
+
+function filterCards() {
+  displayedCount = 0;
+  renderCards();
+}
+
+function renderCards() {
+  const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  let filtered = allCards.filter(c => {
+    const matchSearch = !search || c.name.toLowerCase().includes(search) || (c.set_name||'').toLowerCase().includes(search);
+    const matchFilter = !activeFilter || c.condition === activeFilter || c.lang === activeFilter;
+    return matchSearch && matchFilter;
+  });
+
+  if (!displayedCount) displayedCount = PAGE_SIZE;
+  const visible = filtered.slice(0, displayedCount);
+  const grid = document.getElementById('cardsGrid');
+  if (!grid) return;
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted)">Aucune carte trouvee pour cette recherche.</div>';
+    document.getElementById('loadMoreWrap').style.display = 'none';
+    return;
+  }
+
+  grid.innerHTML = visible.map(c => {
+    const color = c.profiles?.avatar_color || '#FF6B00';
+    const initials = (c.profiles?.username || '?').slice(0,2).toUpperCase();
+    return `
+      <div class="pcard" onclick="openLightbox('${c.img_url||''}','${c.img_back_url||''}','${c.name.replace(/'/g,'').replace(/"/g,'')}','${c.profiles?.username||'?'}')">
+        ${c.img_back_url ? '<div class="pcard-badge">R+V</div>' : ''}
+        ${c.img_url
+          ? `<img src="${c.img_url}" alt="${c.name}" loading="lazy">`
+          : '<div style="aspect-ratio:3/4;background:var(--white);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:2.5rem">🃏</div>'}
+        <div class="pcard-name">${c.name}</div>
+        ${c.set_name ? `<div class="pcard-sub">${c.set_name}</div>` : ''}
+        <div class="pcard-cond">${c.condition||''} ${c.lang?'· '+c.lang:''}</div>
+        <div class="pcard-owner"><div class="pcard-avatar" style="background:${color}">${initials}</div>${c.profiles?.username||'?'}</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('loadMoreWrap').style.display = displayedCount < filtered.length ? 'block' : 'none';
+}
+
+function loadMoreCards() {
+  displayedCount += PAGE_SIZE;
+  renderCards();
+}
+
+function openLightbox(rectoUrl, versoUrl, name, owner) {
+  const lb = document.getElementById('cardLightbox');
+  document.getElementById('lbImg').src = rectoUrl || '';
+  document.getElementById('lbName').textContent = name + (owner ? ' — ' + owner : '');
+  if (versoUrl) {
+    document.getElementById('lbBtns').innerHTML = `
+      <button onclick="document.getElementById('lbImg').src='${rectoUrl}';this.style.background='#FF6B00';this.nextElementSibling.style.background='rgba(255,255,255,.15)'"
+        style="background:#FF6B00;color:white;border:none;border-radius:100px;padding:8px 20px;font-size:.8rem;font-weight:600;cursor:pointer">Recto</button>
+      <button onclick="document.getElementById('lbImg').src='${versoUrl}';this.style.background='#FF6B00';this.previousElementSibling.style.background='rgba(255,255,255,.15)'"
+        style="background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:100px;padding:8px 20px;font-size:.8rem;font-weight:600;cursor:pointer">Verso</button>`;
+  } else {
+    document.getElementById('lbBtns').innerHTML = '<div style="color:rgba(255,255,255,.4);font-size:.75rem">Verso non disponible</div>';
+  }
+  lb.style.display = 'flex';
+}
+
+// ============ STATS ============
+async function loadStats() {
+  try {
+    const [{ count: cards }, { count: users }, { count: exchanges }] = await Promise.all([
+      sb.from('collection').select('*', { count: 'exact', head: true }).eq('available', true),
+      sb.from('profiles').select('*', { count: 'exact', head: true }),
+      sb.from('matches').select('*', { count: 'exact', head: true })
+    ]);
+    const el = id => document.getElementById(id);
+    if (el('statTotal')) el('statTotal').textContent = cards || 0;
+    if (el('statUsers')) el('statUsers').textContent = users || 0;
+    if (el('statEchanges')) el('statEchanges').textContent = exchanges || 0;
+  } catch(e) { console.warn('stats error:', e); }
+}
+
+// ============ DEMAND ============
+async function submitDemand() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session?.user) { openAuth('signup'); toast('Connecte-toi pour poster une demande'); return; }
+
+  const card = document.getElementById('dCard').value.trim();
+  const offer = document.getElementById('dOffer').value.trim();
+  if (!card || !offer) { toast('Remplis les champs obligatoires (*)'); return; }
+
+  const { error } = await sb.from('demands').insert({
+    user_id: session.user.id,
+    cards: [{ name: card }],
+    offer,
+    condition: document.getElementById('dCond').value,
+    notes: document.getElementById('dNote').value.trim(),
+    status: 'open'
+  });
+
+  if (error) { toast('Erreur: ' + error.message); return; }
+  toast('Demande postee ! Tu seras notifie des qu\'un match est trouve.');
+  document.getElementById('dCard').value = '';
+  document.getElementById('dOffer').value = '';
+  document.getElementById('dSet').value = '';
+  document.getElementById('dNote').value = '';
+}
+
+// ============ LEGAL MODALS ============
+function openLegal(type) {
+  const content = {
+    mentions: `<h2>Mentions légales</h2><div class="legal-modal">
+      <h3>Editeur</h3><p>PokéChange est édité par M. Potrisa Vincent, particulier.</p>
+      <h3>Hebergeur</h3><p>Netlify, Inc. — 512 2nd Street, Ste 200, San Francisco, CA 94107, USA.</p>
+      <h3>Propriete intellectuelle</h3><p>Le contenu du site (textes, design, code) est la propriété de M. Potrisa Vincent. Les noms et images des cartes Pokémon sont la propriété de The Pokémon Company.</p>
+      <h3>Contact</h3><p>Pour toute question : contact via la page Contact du site.</p>
+    </div>`,
+    cgu: `<h2>Conditions Generales d'Utilisation</h2><div class="legal-modal">
+      <h3>Objet</h3><p>PokéChange est une plateforme de mise en relation entre particuliers souhaitant échanger des cartes Pokémon. PokéChange n'intervient pas dans les transactions.</p>
+      <h3>Inscription</h3><p>L'utilisation complète du service nécessite la création d'un compte avec un email valide. Vous etes responsable de la confidentialité de votre mot de passe.</p>
+      <h3>Contenu</h3><p>Les utilisateurs s'engagent a publier des photos réelles de leurs cartes et a décrire leur état avec exactitude. Tout contenu frauduleux entrainera la suspension du compte.</p>
+      <h3>Responsabilite</h3><p>PokéChange agit en tant qu'intermédiaire technique. La responsabilité des échanges incombe aux parties. En cas de litige, PokéChange peut suspendre les comptes concernés.</p>
+      <h3>Signalements</h3><p>3 signalements valides entrainent la suspension automatique du profil, en attente de vérification manuelle.</p>
+    </div>`,
+    confidentialite: `<h2>Politique de Confidentialite</h2><div class="legal-modal">
+      <h3>Données collectees</h3><p>Email, pseudo, et photos de cartes. Aucune donnée bancaire n'est collectée.</p>
+      <h3>Utilisation</h3><p>Vos données servent uniquement au fonctionnement de la plateforme (identification, messagerie, réputation).</p>
+      <h3>Stockage</h3><p>Les données sont hébergées sur Supabase (serveurs UE). Les photos sont stockées sur Supabase Storage.</p>
+      <h3>Droits</h3><p>Vous pouvez demander la suppression de votre compte et de vos données via la page Contact.</p>
+      <h3>Cookies</h3><p>PokéChange utilise uniquement les cookies nécessaires à l'authentification. Aucun cookie publicitaire.</p>
+    </div>`
+  };
+  document.getElementById('legalBody').innerHTML = content[type] || '';
+  document.getElementById('legalOv').classList.add('on');
+}
+function closeLegal() { document.getElementById('legalOv').classList.remove('on'); }
+
+// ============ UTILS ============
+function toast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('tmsg').textContent = msg;
+  t.classList.add('on');
+  setTimeout(() => t.classList.remove('on'), 3400);
+}
+function closeMobile() { document.getElementById('mobileMenu').classList.remove('open'); }
+
+// ============ INIT ============
+initAuth();
+loadCatalogue();
+</script>
+</body>
+</html>

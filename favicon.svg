@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Fond noir circulaire -->
+  <circle cx="16" cy="16" r="16" fill="#111111"/>
+  <!-- Cercle orange border -->
+  <circle cx="16" cy="16" r="14.5" fill="none" stroke="#FF6B00" stroke-width="1"/>
+  <!-- Point orange en haut -->
+  <circle cx="16" cy="7" r="1.5" fill="#FFD60A"/>
+  <!-- Texte P blanc -->
+  <text x="16" y="15" font-family="Arial Black, sans-serif" font-weight="900" font-size="9" fill="white" text-anchor="middle">Poké</text>
+  <!-- Ligne orange -->
+  <line x1="8" y1="17" x2="24" y2="17" stroke="#FF6B00" stroke-width="0.8"/>
+  <!-- Texte C orange -->
+  <text x="16" y="25" font-family="Arial Black, sans-serif" font-weight="900" font-size="9" fill="#FF6B00" text-anchor="middle">Change</text>
+</svg>
